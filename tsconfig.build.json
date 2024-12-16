@@ -1,0 +1,12 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+      "outDir": "./dist",               // Output directory for transpiled JavaScript files
+      "declaration": true,             // Generate type declaration files
+      "declarationMap": true,          // Generate declaration maps
+      "sourceMap": true                // Generate source maps
+    },
+    "include": ["src/**/*"],           // Include all files in the src folder
+    "exclude": ["node_modules", "test", "dist", "**/*.spec.ts"] // Exclude unnecessary files
+  }
+  

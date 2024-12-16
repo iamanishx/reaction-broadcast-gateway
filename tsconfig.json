@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+      "module": "CommonJS",                // Use CommonJS for Node.js compatibility
+      "target": "ES2021",                  // Modern ES target for better performance
+      "lib": ["ES2021", "DOM"],            // Add DOM library for WebSocket support
+      "strict": true,                      // Enable strict type-checking options
+      "esModuleInterop": true,             // Allows default imports from CommonJS modules
+      "moduleResolution": "node",          // Resolve modules using Node.js conventions
+      "outDir": "./dist",                  // Output directory for compiled files
+      "rootDir": "./src",                  // Root directory of source files
+      "baseUrl": "./",                     // Base directory to resolve non-relative imports
+       "sourceMap": true,                   // Generate source maps for debugging
+      "skipLibCheck": true,
+      "strictPropertyInitialization": false,                // Skip type checking of declaration files
+      "resolveJsonModule": true,
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true           // Allow importing of JSON files
+    },
+    "exclude": ["node_modules", "dist"],    // Exclude unnecessary files from compilation
+    "include": ["src/**/*"]                // Include all TypeScript files in the src folder
+  }
+  
