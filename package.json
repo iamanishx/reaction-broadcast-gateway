@@ -1,0 +1,42 @@
+{
+  "name": "reaction-broadcast-gateway",
+  "version": "1.0.0",
+  "description": "A NestJS-based WebSocket gateway for real-time reaction broadcasting.",
+  "main": "dist/main.js",
+  "scripts": {
+    "start": "node dist/main",
+    "main": "dist/main.js",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:e2e": "jest --config ./test/jest-e2e.json"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.4.15",
+    "@nestjs/core": "^10.4.15",
+    "@nestjs/platform-express": "^10.4.15",
+    "@nestjs/platform-socket.io": "^10.4.15",
+    "@nestjs/websockets": "^10.4.15",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.0",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.4.9",
+    "@nestjs/schematics": "^10.0.0",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^22.10.2",
+    "@types/socket.io": "^3.0.2",
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "jest": "^29.0.0",
+    "prettier": "^3.0.0",
+    "ts-jest": "^29.0.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.7.2"
+  }
+}
