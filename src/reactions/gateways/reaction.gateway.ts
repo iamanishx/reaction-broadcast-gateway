@@ -1,12 +1,11 @@
-import { WebSocketGateway, OnGatewayInit, WebSocketServer, SubscribeMessage, MessageBody } from '@nestjs/websockets';
-import { Server } from 'socket.io';
+import { WebSocketGateway, OnGatewayInit, WebSocketServer, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
 import { ReactionService } from '../services/reaction.service';
 import { Logger } from '@nestjs/common';
 
-@WebSocketGateway({ 
-  namespace: '/reactions',
+@WebSocketGateway({
   cors: {
-    origin: '*',  
+    origin: '*',
     methods: ['GET', 'POST']
   }
 })
@@ -22,13 +21,42 @@ export class ReactionGateway implements OnGatewayInit {
     this.logger.log('WebSocket Gateway Initialized');
   }
 
+  // Connection handling
+  handleConnection(client: Socket) {
+    this.logger.log(`Client connected: ${client.id}`);
+  }
+
+  // Disconnection handling
+  handleDisconnect(client: Socket) {
+    this.logger.log(`Client disconnected: ${client.id}`);
+  }
+
   @SubscribeMessage('sendReaction')
-  handleReaction(@MessageBody() reaction: string): void {
+  handleReaction(
+    @MessageBody() body: any,
+    @ConnectedSocket() client: Socket
+  ): void {
+    this.logger.log(`Received raw message: ${JSON.stringify(body)}`);
+
     try {
+      const reaction = body.reaction || body;
+
+      if (!reaction) {
+        this.logger.warn('No reaction provided');
+        return;
+      }
+
       const processedReaction = this.reactionService.processReaction(reaction);
-      this.server.emit('receiveReaction', processedReaction);
+      
+      // Broadcast to all clients
+      this.server.emit('receiveReaction', { 
+        reaction: processedReaction,
+       });
+
+      this.logger.log(`Reaction processed: ${processedReaction}`);
     } catch (error) {
-      this.logger.error('Error processing reaction', error);
+      this.logger.error('Reaction processing failed', error);
+      client.emit('error', { message: 'Failed to process reaction' });
     }
   }
 }
