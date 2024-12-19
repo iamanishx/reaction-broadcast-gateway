@@ -1,13 +1,31 @@
-import { WebSocketGateway, OnGatewayInit, WebSocketServer, SubscribeMessage, MessageBody, ConnectedSocket } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
-import { ReactionService } from '../services/reaction.service';
-import { Logger } from '@nestjs/common';
+import {
+  WebSocketGateway,
+  OnGatewayInit,
+  WebSocketServer,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
+} from "@nestjs/websockets";
+import { Server, Socket } from "socket.io";
+import { ReactionService } from "../services/reaction.service";
+import { Logger } from "@nestjs/common";
+import { processReaction } from './reaction.helper';
+
+/**
+ * Constants for event names to avoid hardcoding.
+ */
+const EVENTS = {
+  SEND_REACTION: "sendReaction",
+  ERROR: "error",
+  RECEIVE_REACTION: (sport: string) => `receiveReaction_${sport}`,
+};
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  }
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+  namespace: "/reactions",
 })
 export class ReactionGateway implements OnGatewayInit {
   private readonly logger = new Logger(ReactionGateway.name);
@@ -17,46 +35,87 @@ export class ReactionGateway implements OnGatewayInit {
 
   constructor(private readonly reactionService: ReactionService) {}
 
+  /**
+   * Triggered when the gateway is initialized.
+   */
   afterInit() {
-    this.logger.log('WebSocket Gateway Initialized');
+    this.logInfo("WebSocket Gateway Initialized");
   }
 
-  // Connection handling
+  /**
+   * Handles new client connections.
+   * @param client - The connected client socket.
+   */
   handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
+    this.logInfo(`Client connected: ${client.id}`);
   }
 
-  // Disconnection handling
+  /**
+   * Handles client disconnections.
+   * @param client - The disconnected client socket.
+   */
   handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}`);
+    this.logInfo(`Client disconnected: ${client.id}`);
   }
 
-  @SubscribeMessage('sendReaction')
+  /**
+   * Handles incoming reactions sent by a client.
+   * @param body - The reaction payload (emoji and sport).
+   * @param client - The connected client socket.
+   */
+  @SubscribeMessage(EVENTS.SEND_REACTION)
   handleReaction(
-    @MessageBody() body: any,
-    @ConnectedSocket() client: Socket
+    @MessageBody() body: { emoji: string; sport: string },
+    @ConnectedSocket() client: Socket,
   ): void {
-    this.logger.log(`Received raw message: ${JSON.stringify(body)}`);
+    this.logInfo(`Received raw message: ${JSON.stringify(body)}`);
 
     try {
-      const reaction = body.reaction || body;
+      const processedReaction = processReaction(body);
 
-      if (!reaction) {
-        this.logger.warn('No reaction provided');
-        return;
-      }
+      // Broadcast to the sport-specific channel
+      const broadcastChannel = EVENTS.RECEIVE_REACTION(processedReaction.sport);
+      this.server.emit(broadcastChannel, {
+        emoji: processedReaction.emoji,
+        sport: processedReaction.sport,
+        by: client.id,
+      });
 
-      const processedReaction = this.reactionService.processReaction(reaction);
-      
-      // Broadcast to all clients
-      this.server.emit('receiveReaction', { 
-        reaction: processedReaction,
-       });
-
-      this.logger.log(`Reaction processed: ${processedReaction}`);
+      this.logInfo(
+        `Reaction broadcasted to sport channel: ${broadcastChannel}`,
+      );
     } catch (error) {
-      this.logger.error('Reaction processing failed', error);
-      client.emit('error', { message: 'Failed to process reaction' });
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      this.handleError(client, errorMessage);
     }
+  }
+
+ 
+
+  /**
+   * Sends a standardized error response to the client.
+   * @param client - The client socket.
+   * @param errorMessage - The error message to send.
+   */
+  private handleError(client: Socket, errorMessage: string): void {
+    this.logError(errorMessage);
+    client.emit(EVENTS.ERROR, { message: errorMessage });
+  }
+
+  /**
+   * Logs informational messages with a consistent format.
+   * @param message - The message to log.
+   */
+  private logInfo(message: string): void {
+    this.logger.log(`[INFO]: ${message}`);
+  }
+
+  /**
+   * Logs error messages with a consistent format.
+   * @param message - The message to log.
+   */
+  private logError(message: string): void {
+    this.logger.error(`[ERROR]: ${message}`);
   }
 }
